@@ -75,57 +75,35 @@ provider "aws" {
 
 
 # ------ RESOURCES -----------
-
-
-# VPC module
-# https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest
-module "vpc" {
-    # Code location, code downloaded in "terraform init" step
-    source = "terraform-aws-modules/vpc/aws"
-
-    name = "my-vpc"
-    cidr = var.vpc_cidr_block
-
-    azs            = [var.avail_zone]
-    public_subnets = [var.subnet_cidr_block]
-    public_subnet_tags = {
-        Name = "${var.env_prefix}-subnet-1"
-    }
-
+# 1. Create VPC
+resource "aws_vpc" "myapp-vpc" {
+    cidr_block = var.vpc_cidr_block
     tags = {
-        Name = "${var.env_prefix}-vpc"
-        Environment = "dev"
+        # Add "dev-" prefix to the name
+        Name: "${var.env_prefix}-vpc"
     }
 }
-# resource "aws_vpc" "myapp-vpc" {
-#     cidr_block = var.vpc_cidr_block
-#     tags = {
-#         # Add "dev-" prefix to the name
-#         Name: "${var.env_prefix}-vpc"
-#     }
-# }
 
-# module "myapp-subnet" {
-#     source      = "./modules/subnet"
-#     vpc_id      = aws_vpc.myapp-vpc.id
-#     avail_zone  = var.avail_zone
-#     subnet_cidr_block      = var.subnet_cidr_block
-#     default_route_table_id = aws_vpc.myapp-vpc.default_route_table_id
-#     env_prefix  = var.env_prefix
-# }
-
+module "myapp-subnet" {
+    source      = "./modules/subnet"
+    vpc_id      = aws_vpc.myapp-vpc.id
+    avail_zone  = var.avail_zone
+    subnet_cidr_block      = var.subnet_cidr_block
+    default_route_table_id = aws_vpc.myapp-vpc.default_route_table_id
+    env_prefix  = var.env_prefix
+}
 
 
 module "myapp-server" {
     source      = "./modules/webserver"
-    vpc_id      = module.vpc.vpc_id
+    vpc_id      = aws_vpc.myapp-vpc.id
     my_ip       = var.my_ip
     key_name    = var.key_name
     image_name  = var.image_name
     public_key_location  = var.public_key_location
     private_key_location = var.private_key_location
     instance_type        = var.instance_type
-    subnet_id   = module.vpc.public_subnets[0]
+    subnet_id   = module.myapp-subnet.subnet.id
     avail_zone  = var.avail_zone
     env_prefix  = var.env_prefix
 }
