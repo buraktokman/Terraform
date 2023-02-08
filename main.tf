@@ -61,6 +61,17 @@ If you're on running it on Apple M1 chip, you might as well need to set this:
 */
 
 
+# ------ REMOTE STATE --------
+terraform {
+    required_version = ">= 4.53.0"
+    backend "s3" {
+        bucket = "myapp-terraform-state"
+        key    = "myapp/state.tfstate"
+        region = "us-east-1"
+    }
+}
+
+
 # ------ PROVIDER ------------
 /* provider "aws" {
     region = "us-east-1" # or use AWS_DEFAULT_REGION env var
